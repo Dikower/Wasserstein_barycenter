@@ -30,9 +30,9 @@ def F_grad(lmbd):
 
 def H_grad(q, lmbd):
     for u in range(n):
-        lmbd[u] = sum([(q[j] * np.e ** ((-C[u, j] + lmbd[u]) / gamma)) / sum(
-                      [np.e ** ((-C[i, j] + lmbd[i]) / gamma) for i in range(n)]) for j in range(n)])
-        # lmbd[u] = np.sum((q * np.e ** ((-C[u] + lmbd[u]) / gamma)) / np.sum(np.e ** ((-C + lmbd) / gamma)))
+        # lmbd[u] = sum([(q[j] * np.e ** ((-C[u, j] + lmbd[u]) / gamma)) / sum(
+        #               [np.e ** ((-C[i, j] + lmbd[i]) / gamma) for i in range(n)]) for j in range(n)])
+        lmbd[u] = np.sum((q * np.e ** ((-C[u] + lmbd[u]) / gamma)) / np.sum(np.e ** ((-C + lmbd) / gamma)))
 
     if debug:
         print("lmbd is ready")
@@ -88,7 +88,7 @@ def nesterov_triangle_method(x, eps, task_gradient, L):
 if __name__ == '__main__':
     debug = False
     start = time.process_time()
-    n = 100  # Общее количество пикселей
+    n = 400  # Общее количество пикселей
     n_sqrt = int(math.sqrt(n))
     images = [Image.open("images/" + i, 'r').convert('L').resize((n_sqrt, n_sqrt)) for i in os.listdir("images")]
     m = len(images)  # Количество картинок
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         print("C is ready")
     gamma = 4
     L = 1/gamma
-    eps = 0.3
+    eps = 0.003
 
     lmbd = np.array([[0 for _ in range(n)] for _ in range(m)])
     plt.axis([0, n_sqrt, 0, n_sqrt])

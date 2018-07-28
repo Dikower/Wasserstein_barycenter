@@ -89,7 +89,7 @@ if __name__ == '__main__':
     debug = False
     n_sqrt = 20     # Количество пикселей по вертикали и горизонтали
     n = n_sqrt ** 2  # Общее количество пикселей
-    path = "faces"
+    path = "images"
     images = [Image.open(path + "/" + i, 'r').convert('L').resize((n_sqrt, n_sqrt)) for i in os.listdir(path)]
     m = len(images)  # Количество картинок
     imsave("low_pix.jpg", images[0])

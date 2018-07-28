@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Place square images into dir 'images' result will be saved as 'outfile.jpg'
+Place square images into dir 'images' result will be saved as 'barycenter.jpg'
 
 was coded 23.07.2018 at night by Dikower
 """
@@ -13,7 +13,6 @@ import os
 import copy
 from PIL import Image
 from multiprocessing.pool import ThreadPool
-import matplotlib.pyplot as plt
 from scipy.misc import imsave
 import time
 
@@ -86,13 +85,16 @@ def nesterov_triangle_method(x, eps, task_gradient, L):
 
 
 if __name__ == '__main__':
-    debug = False
     start = time.process_time()
-    n = 400  # Общее количество пикселей
-    n_sqrt = int(math.sqrt(n))
-    images = [Image.open("images/" + i, 'r').convert('L').resize((n_sqrt, n_sqrt)) for i in os.listdir("images")]
+    debug = False
+    n_sqrt = 20     # Количество пикселей по вертикали и горизонтали
+    n = n_sqrt ** 2  # Общее количество пикселей
+    path = "faces"
+    images = [Image.open(path + "/" + i, 'r').convert('L').resize((n_sqrt, n_sqrt)) for i in os.listdir(path)]
     m = len(images)  # Количество картинок
     imsave("low_pix.jpg", images[0])
+    imsave("low_pix2.jpg", images[1])
+
     Q = np.array([np.array(pic.getdata(), dtype="float64") for pic in images])
     Q = np.array([q * (1/np.sum(q)) for q in Q])
     if debug:
@@ -103,17 +105,16 @@ if __name__ == '__main__':
             C[i, j] = (i - j) ** 2 + (j - i) ** 2
     if debug:
         print("C is ready")
-    gamma = 4
+    gamma = 10
     L = 1/gamma
-    eps = 0.003
+    eps = 0.000033
+    lmbd = np.array([np.zeros(n) for _ in range(m)])
 
-    lmbd = np.array([[0 for _ in range(n)] for _ in range(m)])
-    plt.axis([0, n_sqrt, 0, n_sqrt])
-
+    # plt.axis([0, n_sqrt, 0, n_sqrt])
     # plt.ion()
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
-    #
+
     p = nesterov_triangle_method(lmbd, eps, F_grad, L).reshape((int(math.sqrt(n)), int(math.sqrt(n))))
     imsave('barycenter.jpg', p)
     # fig.savefig('barycenter.png')

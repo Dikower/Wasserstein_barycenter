@@ -1,2 +1,2 @@
 # Wasserstein_barycenter
-Wasserstein barycenter research for images
+Wasserstein barycenter research for images based on two methods.

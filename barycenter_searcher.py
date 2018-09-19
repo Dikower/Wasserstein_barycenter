@@ -63,6 +63,7 @@ class WassersteinBarycenter:
                 self._subplots = []
                 for group in subplots:
                     for subplot in group:
+                        subplot.set_facecolor('black')
                         self._subplots.append(subplot)
 
         # variables for optimizer
@@ -72,7 +73,6 @@ class WassersteinBarycenter:
         self._lmbd = np.array([np.zeros(self._n) for _ in range(self._m)])
         self.p = self._Q
         self.save_results("start")
-
         # released optimization methods
         self._allowed_methods = {"nesterov_triangle": [self.Nesterov_Triangle_Method, (self._lmbd, self._eps)],
                                  "ibp": [self.Iterative_Bregman_Projections, ()]}
@@ -166,21 +166,21 @@ class WassersteinBarycenter:
             k += 1
             # print(k)
             for i in range(self._m):
-                v[i] = self._Q[i] / (u[i].dot(E.T))
+                v[i] = self._Q[i] / (E.T.dot(u[i]))
                 print("Q[i]", self._Q[i])
                 print("v", v[i])
-                print("u*E.T", u[i].dot(E.T))
+                print("u*E.T", E.T.dot(u[i]))
 
-            p = u[0] * (v[0].dot(E))
+            p = u[0] * (E.dot(v[0]))
             for i in range(1, self._m):
-                p *= u[i] * (v[i].dot(E))
-                print("v*E.T", v[i].dot(E))
+                p *= u[i] * (E.dot(v[i]))
+                print("v*E.T", E.dot(v[i]))
             if self._visual:
                 if k % self.iter_number_between_visualisation == 0:
                     self._visualise([p], k)
 
             for i in range(self._m):
-                u[i] = p / (v[i].dot(E))
+                u[i] = p / (E.dot(v[i]))
                 print("u", u[i])
 
             # print("_"*1000)
@@ -223,7 +223,6 @@ class WassersteinBarycenter:
 
             p += a * small_gradients
             self.p = p
-            self.save_results("backup/")
 
             # visualisation
             if self._visual:
@@ -240,7 +239,7 @@ class WassersteinBarycenter:
             old_norm = max_norm
             if k == 1:
                 start_norm = max_norm
-            if stop or k >= 100:
+            if stop or k >= 1000:
                 self._debug_print("process", f"optimization finished with difference {start_norm - max_norm} "
                                              "between the starting and final normal")
                 self.p = p
@@ -283,8 +282,8 @@ class WassersteinBarycenter:
         
 if __name__ == '__main__':
     # Arguments for class: path, image_size
-    wb = WassersteinBarycenter("MNIST_classed/5/", 10, visual=True, subplots_per_line=4,
+    wb = WassersteinBarycenter("images", 10, visual=False, subplots_per_line=2,
                                iter_number_between_visualisation=1)
-    wb.calculate("ibp")
-    # wb.calculate("nesterov_triangle")
+    # wb.calculate("ibp")
+    wb.calculate("nesterov_triangle")
     wb.save_results("result")

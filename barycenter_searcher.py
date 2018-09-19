@@ -285,6 +285,6 @@ if __name__ == '__main__':
     # Arguments for class: path, image_size
     wb = WassersteinBarycenter("MNIST_classed/5/", 10, visual=True, subplots_per_line=4,
                                iter_number_between_visualisation=1)
-    # wb.calculate("ibp")
-    wb.calculate("nesterov_triangle")
+    wb.calculate("ibp")
+    # wb.calculate("nesterov_triangle")
     wb.save_results("result")

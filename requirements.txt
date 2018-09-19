@@ -1,6 +1,6 @@
 tqdm
 numpy
+imageio
 matplotlib
 scikit-image
 multiprocessing
-imageio

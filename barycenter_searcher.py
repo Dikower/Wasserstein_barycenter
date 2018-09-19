@@ -7,6 +7,7 @@ author - Din Dmitriy
 import os
 import time
 import tqdm
+import imageio
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing.pool import ThreadPool
@@ -37,7 +38,7 @@ class WassersteinBarycenter:
         self._Q = [np.matrix(rgb2gray(resize(imread(self.input_path + i), (self._n_sqrt, self._n_sqrt)))).flatten()
                    for i in os.listdir(self.input_path)]
         self._m = len(self._Q)  # Amount of images
-        self._debug_print("variable", "_m = {}".format(self._m))
+        self._debug_print("variable", f"_m = {self._m}")
 
         # visualisation part
         self._visual = visual
@@ -45,6 +46,11 @@ class WassersteinBarycenter:
         self._subplots_per_line = subplots_per_line
         self.iter_number_between_visualisation = iter_number_between_visualisation
         if self._visual:
+            try:
+                os.mkdir("history")
+            except FileExistsError:
+                pass
+
             plt.axis('off')
             plt.ion()
             plt.subplots_adjust(left=0.1, bottom=0.1, right=0.2, top=0.2, wspace=0.1, hspace=0.1)
@@ -81,8 +87,8 @@ class WassersteinBarycenter:
     def _debug_print(self, level: str, *values):
         if level in self.debug_variables:
             if self.debug_variables[level]:
-                print("[{0}][{1}] - {2}".format(round(time.process_time() - self._summary_time, 2),
-                                                level.ljust(self.interval, " "), " ".join(values)))
+                print(f"[{round(time.process_time() - self._summary_time, 2)}][{level.ljust(self.interval)}]"
+                      f" - {', '.join(values)}")
 
     # makes distance matrix n*n
     def _distance_matrix(self):
@@ -92,7 +98,7 @@ class WassersteinBarycenter:
                c[i, j] = (i - j) ** 2 + (j - i) ** 2
         return c
 
-    def _visualise(self, p):
+    def _visualise(self, p, k):
         if self._m > self._subplots_per_line ** 2:
             p = p[len(p) - self._subplots_per_line ** 2:] # not [:self.s_p_l ** 2] because doesnt work when m == s_p_l
 
@@ -101,10 +107,11 @@ class WassersteinBarycenter:
             self._subplots[i].imshow(np.resize(p[i] / maximum, (self._n_sqrt, self._n_sqrt)), cmap="gray")
         plt.draw()
         plt.pause(0.0001)
+        plt.savefig(f"history/{k}.jpg")
 
     # gradient of the sum
     def _summary_gradient(self, lmbd) -> np.array:
-        self._debug_print("more_info", " _summary_gradient: lmbd = {}".format(lmbd))
+        self._debug_print("more_info", f" _summary_gradient: lmbd = {lmbd}")
 
         # initializes threads
         pool = ThreadPool(processes=len(lmbd))
@@ -118,12 +125,12 @@ class WassersteinBarycenter:
 
         # copies for next usage
         gradients = np.copy(result)
-        self._debug_print("more_info", "result = {}".format(result))
+        self._debug_print("more_info", f"result = {result}")
 
         # applies gradients to the original formula
         result = np.sum(result, axis=0)  # TODO clarify the formula
-        self._debug_print("more_info", "{} - result shape".format(result.shape))
-        self._debug_print("process", "the gradient counted for {}s".format(round(time.process_time() - start, 2)))
+        self._debug_print("more_info", f"result shape = {result.shape}")
+        self._debug_print("process", f"the gradient counted for {round(time.process_time() - start, 2)}s")
         return result, gradients
 
     # gradient of the term
@@ -141,8 +148,8 @@ class WassersteinBarycenter:
         for u in rng:
             lmbd[u] = np.sum((q * np.e ** ((-self._C[u] + lmbd[u]) / self._gamma)) /
                              np.sum(np.e ** ((-self._C + lmbd) / self._gamma)))
-        self._debug_print("more_info", "{} - lmbd shape".format(lmbd.shape))
-        self._debug_print("more_info", "small gradient counted for {}s".format(round(time.process_time() - start, 2)))
+        self._debug_print("more_info", f"lmbd shape = {lmbd.shape}")
+        self._debug_print("more_info", f"small gradient counted for {round(time.process_time() - start, 2)}s")
         return lmbd
 
     def Iterative_Bregman_Projections(self, args) -> None:
@@ -170,7 +177,7 @@ class WassersteinBarycenter:
                 print("v*E.T", v[i].dot(E))
             if self._visual:
                 if k % self.iter_number_between_visualisation == 0:
-                    self._visualise([p])
+                    self._visualise([p], k)
 
             for i in range(self._m):
                 u[i] = p / (v[i].dot(E))
@@ -195,24 +202,24 @@ class WassersteinBarycenter:
         while True:
             k += 1
             start = time.process_time()
-            self._debug_print("process", "{} iteration started".format(k))
+            self._debug_print("process", f"{k} iteration started")
 
             a = 1 / (2 * self._L) + (1 / (4 * self._L**2) + a**2) ** 0.5
-            self._debug_print("more_info", "a = {}".format(a))
+            self._debug_print("more_info", f"a = {a}")
 
             last_A = A
             A += a
-            self._debug_print("more_info", "A = {}".format(A))
+            self._debug_print("more_info", f"A = {A}")
 
             y = (a * u + last_A * x) / A
-            self._debug_print("more_info", "y = {}".format(y))
+            self._debug_print("more_info", f"y = {y}")
 
             summary_gradient, small_gradients = self._summary_gradient(y)
             u = u - a * summary_gradient
-            self._debug_print("more_info", "u = {}".format(u))
+            self._debug_print("more_info", f"u = {u}")
 
             x = (a * u + last_A * x) / A
-            self._debug_print("more_info", "x = {}".format(x))
+            self._debug_print("more_info", f"x = {x}")
 
             p += a * small_gradients
             self.p = p
@@ -221,21 +228,21 @@ class WassersteinBarycenter:
             # visualisation
             if self._visual:
                 if k % self.iter_number_between_visualisation == 0:
-                    self._visualise(p)
+                    self._visualise(p, k)
 
             norm = np.linalg.norm(self._summary_gradient(x))
             max_norm = np.max(norm)
-            self._debug_print("variable", "norm = {}".format(round(max_norm, 6)))
+            self._debug_print("variable", f"norm = {round(max_norm, 6)}")
 
             stop = max_norm < eps or max_norm == old_norm
-            self._debug_print("process", "{0} iteration ended in {1}s".format(k, round(time.process_time() - start, 2)))
+            self._debug_print("process", f"{k} iteration ended in {round(time.process_time() - start, 2)}s")
             self._debug_print("process", "-" * 100)
             old_norm = max_norm
             if k == 1:
                 start_norm = max_norm
             if stop or k >= 100:
-                self._debug_print("process", "optimization finished with difference {} "
-                                             "between the starting and final normal ".format(start_norm - max_norm))
+                self._debug_print("process", f"optimization finished with difference {start_norm - max_norm} "
+                                             "between the starting and final normal")
                 self.p = p
                 break
 
@@ -251,12 +258,19 @@ class WassersteinBarycenter:
             pass
         for i in range(len(self.p)):  # if use self._m doesnt work correctly with ibp
             maximum = np.max(self.p[i])
-            imsave(path + "{}.jpg".format(i), np.resize(self.p[i] / maximum, (self._n_sqrt, self._n_sqrt)))
+            imsave(path + f"{i}.jpg", np.resize(self.p[i] / maximum, (self._n_sqrt, self._n_sqrt)))
+
+        if self._visual:
+            self._debug_print("process", "Saving to the gif file")
+            with imageio.get_writer('history.gif', mode='I', duration=0.2) as writer:
+                for filename in tqdm.tqdm(sorted(os.listdir("history"), key=lambda x: int(x.split(".")[0]))):
+                    image = imageio.imread(f"history/{filename}")
+                    writer.append_data(image)
 
     # method for using optimizers
     def calculate(self, method: str):
         assert method in self._allowed_methods, \
-            "You can use only {} method(s)".format(", ".join(self._allowed_methods.keys()))
+            f"You can use only {', '.join(self._allowed_methods.keys())} method(s)"
         method, args = self._allowed_methods[method]
         method(args)
 
@@ -270,7 +284,7 @@ class WassersteinBarycenter:
 if __name__ == '__main__':
     # Arguments for class: path, image_size
     wb = WassersteinBarycenter("MNIST_classed/5/", 10, visual=True, subplots_per_line=4,
-                               iter_number_between_visualisation=2)
+                               iter_number_between_visualisation=1)
     # wb.calculate("ibp")
     wb.calculate("nesterov_triangle")
     wb.save_results("result")

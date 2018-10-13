@@ -84,21 +84,22 @@ class WassersteinBarycenter:
         self._C = self._distance_matrix()
 
     # universal method for debug
-    def _debug_print(self, level: str, *values):
+    def _debug_print(self, level: str, *values) -> None:
         if level in self.debug_variables:
             if self.debug_variables[level]:
                 print(f"[{round(time.process_time() - self._summary_time, 2)}][{level.ljust(self.interval)}]"
                       f" - {', '.join(values)}")
 
     # makes distance matrix n*n
-    def _distance_matrix(self):
+    def _distance_matrix(self) -> np.array:
         c = np.zeros((self._n, self._n))
         for i in range(self._n):
             for j in range(self._n):
                c[i, j] = (i - j) ** 2 + (j - i) ** 2
         return c
 
-    def _visualise(self, p, k):
+    # draws results of calculating
+    def _visualise(self, p, k) -> None:
         if self._m > self._subplots_per_line ** 2:
             p = p[len(p) - self._subplots_per_line ** 2:] # not [:self.s_p_l ** 2] because doesnt work when m == s_p_l
 
@@ -152,6 +153,7 @@ class WassersteinBarycenter:
         self._debug_print("more_info", f"small gradient counted for {round(time.process_time() - start, 2)}s")
         return lmbd
 
+    # new experimental method
     def Iterative_Bregman_Projections(self, args) -> None:
         # for one picture
         k = 0
@@ -159,29 +161,32 @@ class WassersteinBarycenter:
         v = np.ones((self._m, self._n))
         # print("C", self._C, "\nC/gamma", self._C/self._gamma)
         E = np.e ** (-self._C / self._gamma)
+        np.savetxt("E.csv", E, delimiter=" ")
+        # for e in E:
+            # print(e, end=' ')
+            # print('', end='\n')
         # print("+"*100)
-        for i in E.T:
-            print(i)
         while True:
             k += 1
             # print(k)
             for i in range(self._m):
-                v[i] = self._Q[i] / (E.T.dot(u[i]))
-                print("Q[i]", self._Q[i])
-                print("v", v[i])
-                print("u*E.T", E.T.dot(u[i]))
+                v[i] = self._Q[i] / ((E.T).dot(u[i]))
+                # print("Q[i]", self._Q[i])
+                # print("v", v[i])
+                # print("u*E.T", (E.T).dot(u[i]))
 
             p = u[0] * (E.dot(v[0]))
             for i in range(1, self._m):
                 p *= u[i] * (E.dot(v[i]))
-                print("v*E.T", E.dot(v[i]))
+                # print("v*E.T", E.dot(v[i]))
+                # print("p", p)
             if self._visual:
                 if k % self.iter_number_between_visualisation == 0:
                     self._visualise([p], k)
 
             for i in range(self._m):
                 u[i] = p / (E.dot(v[i]))
-                print("u", u[i])
+                # print("u", u[i])
 
             # print("_"*1000)
             if k >= 300:
@@ -196,7 +201,7 @@ class WassersteinBarycenter:
         a = 0
         A = 0  # not constant
         u = np.copy(x)
-        p = np.zeros((self._m, self._n))  # solutions of task
+        p = np.zeros((self._m, self._n))  # solutions of the task
         old_norm = 0
         start_norm = 0
         while True:
@@ -246,7 +251,7 @@ class WassersteinBarycenter:
                 break
 
     # method for saving results
-    def save_results(self, path: str):
+    def save_results(self, path: str) -> None:
         assert self.p is not None, "You have to calculate barycenter to save it"
         # for correct saving
         if path[-1] != "/":
@@ -257,7 +262,7 @@ class WassersteinBarycenter:
             pass
         for i in range(len(self.p)):  # if use self._m doesnt work correctly with ibp
             maximum = np.max(self.p[i])
-            imsave(path + f"{i}.jpg", np.resize(self.p[i] / maximum, (self._n_sqrt, self._n_sqrt)))
+            imsave(path + f"{i}.jpg", np.resize(self.p[i] / maximum, (self._n_sqrt, self._n_sqrt)))  # 255/max = x/gray
 
         if self._visual:
             self._debug_print("process", "Saving to the gif file")
@@ -267,23 +272,23 @@ class WassersteinBarycenter:
                     writer.append_data(image)
 
     # method for using optimizers
-    def calculate(self, method: str):
+    def calculate(self, method: str) -> None:
         assert method in self._allowed_methods, \
             f"You can use only {', '.join(self._allowed_methods.keys())} method(s)"
         method, args = self._allowed_methods[method]
         method(args)
 
     # method for setting debug output
-    def set_debug_parameters(self, variable=True, process=True, more_info=False):
+    def set_debug_parameters(self, variable: bool=True, process: bool=True, more_info: bool=False):
         self.debug_variables["variable"] = variable
         self.debug_variables["process"] = process
         self.debug_variables["more_info"] = more_info
 
-        
+
 if __name__ == '__main__':
     # Arguments for class: path, image_size
-    wb = WassersteinBarycenter("images", 10, visual=False, subplots_per_line=2,
+    wb = WassersteinBarycenter("images", 10, gamma=100., visual=False, subplots_per_line=2,
                                iter_number_between_visualisation=1)
-    # wb.calculate("ibp")
-    wb.calculate("nesterov_triangle")
+    wb.calculate("ibp")
+    # wb.calculate("nesterov_triangle")
     wb.save_results("result")
